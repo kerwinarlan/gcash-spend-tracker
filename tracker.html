@@ -222,12 +222,13 @@ th, td {
   border-bottom: 1px solid var(--panel-border);
 }
 
-th {
-  font-weight: 600;
-  color: var(--muted);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+th.sortable:hover {
+  color: var(--primary);
 }
 
 tbody tr:hover { background: rgba(0,0,0,0.02); }
@@ -336,11 +337,11 @@ td.del button:hover { color: var(--danger); }
   <table>
     <thead>
       <tr>
-        <th>Date & Time</th>
+        <th class="sortable" id="thDate">Date & Time <span id="iconDate">▼</span></th>
         <th>Type</th>
         <th>Recipient / Merchant</th>
         <th>Ref No.</th>
-        <th style="text-align: right;">Amount</th>
+        <th class="sortable" id="thAmount" style="text-align: right;">Amount <span id="iconAmount"></span></th>
         <th></th>
       </tr>
     </thead>
@@ -630,8 +631,31 @@ function renderCharts(items) {
   });
 }
 
+function updateSortHeaderIcons(sortVal) {
+  const iconDate = document.getElementById('iconDate');
+  const iconAmount = document.getElementById('iconAmount');
+  if (!iconDate || !iconAmount) return;
+
+  if (sortVal === 'date_desc') {
+    iconDate.textContent = '▼';
+    iconAmount.textContent = '';
+  } else if (sortVal === 'date_asc') {
+    iconDate.textContent = '▲';
+    iconAmount.textContent = '';
+  } else if (sortVal === 'amount_desc') {
+    iconDate.textContent = '';
+    iconAmount.textContent = '▼';
+  } else if (sortVal === 'amount_asc') {
+    iconDate.textContent = '';
+    iconAmount.textContent = '▲';
+  }
+}
+
 function render() {
   const items = getFiltered();
+  const sortVal = document.getElementById('sort') ? document.getElementById('sort').value : 'date_desc';
+  updateSortHeaderIcons(sortVal);
+
   let spent = 0, received = 0;
 
   items.forEach(i => {
@@ -693,6 +717,20 @@ document.getElementById('exportCsv').addEventListener('click', () => {
   a.href = url;
   a.download = 'gcash-spend-export.csv';
   a.click();
+});
+
+document.getElementById('thDate').addEventListener('click', () => {
+  const sortSel = document.getElementById('sort');
+  if (sortSel.value === 'date_desc') sortSel.value = 'date_asc';
+  else sortSel.value = 'date_desc';
+  render();
+});
+
+document.getElementById('thAmount').addEventListener('click', () => {
+  const sortSel = document.getElementById('sort');
+  if (sortSel.value === 'amount_desc') sortSel.value = 'amount_asc';
+  else sortSel.value = 'amount_desc';
+  render();
 });
 
 ['month', 'type', 'merchant', 'sort', 'from', 'to'].forEach(id => {
