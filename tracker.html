@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GCash Spend Tracker</title>
+  <link rel="icon" href="gcash.jpeg" type="image/jpeg">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root {
@@ -261,7 +261,7 @@ td.del button:hover { color: var(--danger); }
 
 <header>
   <div>
-    <h1>💙 GCash Spend Tracker</h1>
+    <h1 style="display: flex; align-items: center; gap: 0.6rem;"><img src="gcash.jpeg" alt="GCash" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover;"> GCash Spend Tracker</h1>
     <div class="sub-header">Local-first financial analytics & iMessage parser</div>
   </div>
   <button id="exportCsv">📥 Export CSV</button>
@@ -551,7 +551,9 @@ document.getElementById('exportCsv').addEventListener('click', () => {
 });
 
 document.getElementById('reset').addEventListener('click', () => {
-  ['month', 'type', 'merchant', 'from', 'to'].forEach(id => document.getElementById(id).value = 'all');
+  document.getElementById('month').value = 'all';
+  document.getElementById('type').value = 'all';
+  document.getElementById('merchant').value = 'all';
   document.getElementById('from').value = '';
   document.getElementById('to').value = '';
   render();
