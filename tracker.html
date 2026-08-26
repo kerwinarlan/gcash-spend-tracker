@@ -390,6 +390,9 @@ async function loadLedger() {
 }
 
 function populateDropdowns() {
+  const currentMonthVal = document.getElementById('month').value;
+  const currentMerchVal = document.getElementById('merchant').value;
+
   const months = new Set();
   const merchants = new Set();
   ledger.forEach(i => {
@@ -400,9 +403,11 @@ function populateDropdowns() {
 
   const mSel = document.getElementById('month');
   mSel.innerHTML = '<option value="all">All Time</option>' + Array.from(months).sort().reverse().map(m => `<option value="${m}">${m}</option>`).join('');
+  if (currentMonthVal) mSel.value = currentMonthVal;
 
   const merSel = document.getElementById('merchant');
   merSel.innerHTML = '<option value="all">All Merchants</option>' + Array.from(merchants).sort().map(m => `<option value="${m}">${m}</option>`).join('');
+  if (currentMerchVal) merSel.value = currentMerchVal;
 }
 
 function getFiltered() {
