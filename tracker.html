@@ -230,6 +230,21 @@ th.sortable {
 th.sortable:hover {
   color: var(--primary);
 }
+.sort-icon {
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
+  display: inline-block;
+  opacity: 0.4;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+th.sortable:hover .sort-icon {
+  opacity: 1;
+}
+.sort-icon.active {
+  opacity: 1;
+  color: var(--primary);
+  font-weight: bold;
+}
 
 tbody tr:hover { background: rgba(0,0,0,0.02); }
 td.amt { font-variant-numeric: tabular-nums; font-weight: 600; }
@@ -337,11 +352,11 @@ td.del button:hover { color: var(--danger); }
   <table>
     <thead>
       <tr>
-        <th class="sortable" id="thDate">Date & Time <span id="iconDate">▼</span></th>
+        <th class="sortable" id="thDate">Date & Time <span id="iconDate" class="sort-icon active">▼</span></th>
         <th>Type</th>
         <th>Recipient / Merchant</th>
         <th>Ref No.</th>
-        <th class="sortable" id="thAmount" style="text-align: right;">Amount <span id="iconAmount"></span></th>
+        <th class="sortable" id="thAmount" style="text-align: right;">Amount <span id="iconAmount" class="sort-icon">⇅</span></th>
         <th></th>
       </tr>
     </thead>
@@ -638,16 +653,24 @@ function updateSortHeaderIcons(sortVal) {
 
   if (sortVal === 'date_desc') {
     iconDate.textContent = '▼';
-    iconAmount.textContent = '';
+    iconDate.className = 'sort-icon active';
+    iconAmount.textContent = '⇅';
+    iconAmount.className = 'sort-icon';
   } else if (sortVal === 'date_asc') {
     iconDate.textContent = '▲';
-    iconAmount.textContent = '';
+    iconDate.className = 'sort-icon active';
+    iconAmount.textContent = '⇅';
+    iconAmount.className = 'sort-icon';
   } else if (sortVal === 'amount_desc') {
-    iconDate.textContent = '';
+    iconDate.textContent = '⇅';
+    iconDate.className = 'sort-icon';
     iconAmount.textContent = '▼';
+    iconAmount.className = 'sort-icon active';
   } else if (sortVal === 'amount_asc') {
-    iconDate.textContent = '';
+    iconDate.textContent = '⇅';
+    iconDate.className = 'sort-icon';
     iconAmount.textContent = '▲';
+    iconAmount.className = 'sort-icon active';
   }
 }
 
