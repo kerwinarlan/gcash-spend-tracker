@@ -542,7 +542,7 @@ function getFiltered() {
     if (from && d < new Date(from)) return false;
     if (to && d > new Date(to + 'T23:59:59')) return false;
     return true;
-  });
+  }).sort((a, b) => getItemDate(b) - getItemDate(a));
 }
 
 function renderCharts(items) {
