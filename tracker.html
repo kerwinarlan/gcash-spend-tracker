@@ -307,6 +307,15 @@ td.del button:hover { color: var(--danger); }
   <div class="filter-group">
     To: <input type="date" id="to">
   </div>
+  <div class="filter-group">
+    Sort By:
+    <select id="sort">
+      <option value="date_desc">Date (Newest First)</option>
+      <option value="date_asc">Date (Oldest First)</option>
+      <option value="amount_desc">Amount (Highest First)</option>
+      <option value="amount_asc">Amount (Lowest First)</option>
+    </select>
+  </div>
   <button id="privacy">🎭 Mask Data</button>
   <button id="reset">Reset</button>
 </div>
@@ -485,6 +494,7 @@ function getFiltered() {
   const month = document.getElementById('month').value;
   const type = document.getElementById('type').value;
   const merchant = document.getElementById('merchant').value;
+  const sort = document.getElementById('sort') ? document.getElementById('sort').value : 'date_desc';
   const from = document.getElementById('from').value;
   const to = document.getElementById('to').value;
 
@@ -527,7 +537,7 @@ function getFiltered() {
     relStart = new Date(today.getFullYear(), 0, 1);
   }
 
-  return ledger.filter(item => {
+  const filtered = ledger.filter(item => {
     const d = getItemDate(item);
     const itemType = getItemType(item);
     const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -542,7 +552,14 @@ function getFiltered() {
     if (from && d < new Date(from)) return false;
     if (to && d > new Date(to + 'T23:59:59')) return false;
     return true;
-  }).sort((a, b) => getItemDate(b) - getItemDate(a));
+  });
+
+  return filtered.sort((a, b) => {
+    if (sort === 'date_asc') return getItemDate(a) - getItemDate(b);
+    if (sort === 'amount_desc') return getItemAmount(b) - getItemAmount(a);
+    if (sort === 'amount_asc') return getItemAmount(a) - getItemAmount(b);
+    return getItemDate(b) - getItemDate(a); // date_desc
+  });
 }
 
 function renderCharts(items) {
@@ -678,7 +695,7 @@ document.getElementById('exportCsv').addEventListener('click', () => {
   a.click();
 });
 
-['month', 'type', 'merchant', 'from', 'to'].forEach(id => {
+['month', 'type', 'merchant', 'sort', 'from', 'to'].forEach(id => {
   document.getElementById(id).addEventListener('change', render);
 });
 
@@ -686,6 +703,7 @@ document.getElementById('reset').addEventListener('click', () => {
   document.getElementById('month').value = 'all';
   document.getElementById('type').value = 'all';
   document.getElementById('merchant').value = 'all';
+  document.getElementById('sort').value = 'date_desc';
   document.getElementById('from').value = '';
   document.getElementById('to').value = '';
   render();
