@@ -471,6 +471,16 @@ function populateDropdowns() {
   }
 }
 
+function getReferenceDate() {
+  if (!ledger || ledger.length === 0) return new Date();
+  let maxTs = 0;
+  ledger.forEach(i => {
+    const d = getItemDate(i);
+    if (d.getTime() > maxTs) maxTs = d.getTime();
+  });
+  return maxTs > 0 ? new Date(maxTs) : new Date();
+}
+
 function getFiltered() {
   const month = document.getElementById('month').value;
   const type = document.getElementById('type').value;
@@ -478,20 +488,20 @@ function getFiltered() {
   const from = document.getElementById('from').value;
   const to = document.getElementById('to').value;
 
-  const now = new Date();
+  const refDate = getReferenceDate();
   
   // Calculate relative date boundaries
   let relStart = null;
   let relEnd = null;
 
   if (month === 'this_week') {
-    const today = new Date();
+    const today = new Date(refDate);
     const day = today.getDay(); // 0 is Sunday
     const diffToMon = today.getDate() - day + (day === 0 ? -6 : 1);
     relStart = new Date(today.setDate(diffToMon));
     relStart.setHours(0, 0, 0, 0);
   } else if (month === 'last_week') {
-    const today = new Date();
+    const today = new Date(refDate);
     const day = today.getDay();
     const diffToLastMon = today.getDate() - day - 6 + (day === 0 ? -6 : 1);
     relStart = new Date(today.setDate(diffToLastMon));
@@ -500,20 +510,20 @@ function getFiltered() {
     relEnd.setDate(relEnd.getDate() + 6);
     relEnd.setHours(23, 59, 59, 999);
   } else if (month === 'this_month') {
-    const today = new Date();
+    const today = new Date(refDate);
     relStart = new Date(today.getFullYear(), today.getMonth(), 1);
   } else if (month === 'last_month') {
-    const today = new Date();
+    const today = new Date(refDate);
     relStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     relEnd = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999);
   } else if (month === 'last_30_days') {
-    relStart = new Date();
+    relStart = new Date(refDate);
     relStart.setDate(relStart.getDate() - 30);
   } else if (month === 'last_90_days') {
-    relStart = new Date();
+    relStart = new Date(refDate);
     relStart.setDate(relStart.getDate() - 90);
   } else if (month === 'this_year') {
-    const today = new Date();
+    const today = new Date(refDate);
     relStart = new Date(today.getFullYear(), 0, 1);
   }
 
