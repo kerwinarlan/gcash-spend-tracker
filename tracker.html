@@ -485,23 +485,27 @@ function getFiltered() {
   let relEnd = null;
 
   if (month === 'this_week') {
-    const day = now.getDay(); // 0 is Sunday
-    const diffToMon = now.getDate() - day + (day === 0 ? -6 : 1);
-    relStart = new Date(now.setDate(diffToMon));
+    const today = new Date();
+    const day = today.getDay(); // 0 is Sunday
+    const diffToMon = today.getDate() - day + (day === 0 ? -6 : 1);
+    relStart = new Date(today.setDate(diffToMon));
     relStart.setHours(0, 0, 0, 0);
   } else if (month === 'last_week') {
-    const day = now.getDay();
-    const diffToLastMon = now.getDate() - day - 6 + (day === 0 ? -6 : 1);
-    relStart = new Date(now.setDate(diffToLastMon));
+    const today = new Date();
+    const day = today.getDay();
+    const diffToLastMon = today.getDate() - day - 6 + (day === 0 ? -6 : 1);
+    relStart = new Date(today.setDate(diffToLastMon));
     relStart.setHours(0, 0, 0, 0);
     relEnd = new Date(relStart);
     relEnd.setDate(relEnd.getDate() + 6);
     relEnd.setHours(23, 59, 59, 999);
   } else if (month === 'this_month') {
-    relStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const today = new Date();
+    relStart = new Date(today.getFullYear(), today.getMonth(), 1);
   } else if (month === 'last_month') {
-    relStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    relEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    const today = new Date();
+    relStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    relEnd = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999);
   } else if (month === 'last_30_days') {
     relStart = new Date();
     relStart.setDate(relStart.getDate() - 30);
@@ -509,7 +513,8 @@ function getFiltered() {
     relStart = new Date();
     relStart.setDate(relStart.getDate() - 90);
   } else if (month === 'this_year') {
-    relStart = new Date(now.getFullYear(), 0, 1);
+    const today = new Date();
+    relStart = new Date(today.getFullYear(), 0, 1);
   }
 
   return ledger.filter(item => {
