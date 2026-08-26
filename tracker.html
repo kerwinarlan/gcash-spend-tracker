@@ -389,6 +389,49 @@ async function loadLedger() {
   }
 }
 
+function getItemDate(item) {
+  if (item.ts) return new Date(item.ts);
+  if (item.date) return parseDate(item.date);
+  return new Date(0);
+}
+
+function getItemType(item) {
+  return item.type || item.kind || 'payment';
+}
+
+function getItemAmount(item) {
+  return item.amount !== undefined ? item.amount : (item.amt !== undefined ? item.amt : 0);
+}
+
+function getItemRef(item) {
+  return item.ref !== undefined ? item.ref : '';
+}
+
+function parseSms(text) {
+  let m = text.match(RE_NEW) || text.match(RE_OLD);
+  if (m) return { type: 'payment', amount: parseFloat(m[1].replace(/,/g, '')), merchant: m[2].trim(), date: m[3], ref: m[4], raw: text };
+  m = text.match(RE_EXPRESS);
+  if (m) return { type: 'payment', amount: parseFloat(m[1].replace(/,/g, '')), merchant: 'Express Send: ' + m[2].trim(), date: m[3], ref: m[4], raw: text };
+  m = text.match(RE_WITHDRAW);
+  if (m) return { type: 'withdraw', amount: parseFloat(m[1].replace(/,/g, '')), merchant: m[2].trim(), date: m[3], ref: m[4], raw: text };
+  m = text.match(RE_RCVD);
+  if (m) return { type: 'received', amount: parseFloat(m[1].replace(/,/g, '')), merchant: m[2].trim(), date: m[3], ref: m[4], raw: text };
+  return null;
+}
+
+async function loadLedger() {
+  try {
+    const res = await fetch('ledger.json?cache=' + Date.now());
+    if (res.ok) {
+      ledger = await res.json();
+      populateDropdowns();
+      render();
+    }
+  } catch (e) {
+    console.error('Ledger fetch error:', e);
+  }
+}
+
 function populateDropdowns() {
   const currentMonthVal = document.getElementById('month').value;
   const currentMerchVal = document.getElementById('merchant').value;
@@ -396,18 +439,23 @@ function populateDropdowns() {
   const months = new Set();
   const merchants = new Set();
   ledger.forEach(i => {
-    const d = parseDate(i.date);
+    const d = getItemDate(i);
     if (d.getFullYear() > 2000) months.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
     if (i.merchant) merchants.add(i.merchant);
   });
 
   const mSel = document.getElementById('month');
-  mSel.innerHTML = '<option value="all">All Time</option>' + Array.from(months).sort().reverse().map(m => `<option value="${m}">${m}</option>`).join('');
-  if (currentMonthVal) mSel.value = currentMonthVal;
+  const sortedMonths = Array.from(months).sort().reverse();
+  mSel.innerHTML = '<option value="all">All Time</option>' + sortedMonths.map(m => `<option value="${m}">${m}</option>`).join('');
+  if (currentMonthVal && (currentMonthVal === 'all' || months.has(currentMonthVal))) {
+    mSel.value = currentMonthVal;
+  }
 
   const merSel = document.getElementById('merchant');
   merSel.innerHTML = '<option value="all">All Merchants</option>' + Array.from(merchants).sort().map(m => `<option value="${m}">${m}</option>`).join('');
-  if (currentMerchVal) merSel.value = currentMerchVal;
+  if (currentMerchVal && (currentMerchVal === 'all' || merchants.has(currentMerchVal))) {
+    merSel.value = currentMerchVal;
+  }
 }
 
 function getFiltered() {
@@ -418,11 +466,12 @@ function getFiltered() {
   const to = document.getElementById('to').value;
 
   return ledger.filter(item => {
-    const d = parseDate(item.date);
+    const d = getItemDate(item);
+    const itemType = getItemType(item);
     const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     if (month !== 'all' && mStr !== month) return false;
     if (type === 'tiktok' && !/tiktok/i.test(item.merchant)) return false;
-    if (type !== 'all' && type !== 'tiktok' && item.type !== type) return false;
+    if (type !== 'all' && type !== 'tiktok' && itemType !== type) return false;
     if (merchant !== 'all' && item.merchant !== merchant) return false;
     if (from && d < new Date(from)) return false;
     if (to && d > new Date(to + 'T23:59:59')) return false;
@@ -436,11 +485,14 @@ function renderCharts(items) {
   const merchantMap = {};
 
   items.forEach(i => {
-    const d = parseDate(i.date);
+    const d = getItemDate(i);
     const dayStr = d.toISOString().split('T')[0];
-    if (i.type === 'payment' || i.type === 'withdraw') {
-      dailyMap[dayStr] = (dailyMap[dayStr] || 0) + i.amount;
-      merchantMap[i.merchant] = (merchantMap[i.merchant] || 0) + i.amount;
+    const itemType = getItemType(i);
+    const amount = getItemAmount(i);
+
+    if (itemType === 'payment' || itemType === 'withdraw') {
+      dailyMap[dayStr] = (dailyMap[dayStr] || 0) + amount;
+      merchantMap[i.merchant] = (merchantMap[i.merchant] || 0) + amount;
     }
   });
 
@@ -500,8 +552,10 @@ function render() {
   let spent = 0, received = 0;
 
   items.forEach(i => {
-    if (i.type === 'received') received += i.amount;
-    else spent += i.amount;
+    const itemType = getItemType(i);
+    const amount = getItemAmount(i);
+    if (itemType === 'received') received += amount;
+    else spent += amount;
   });
 
   document.getElementById('total').textContent = 'P' + spent.toLocaleString('en-US', { minimumFractionDigits: 2 });
@@ -513,18 +567,25 @@ function render() {
   renderCharts(items);
 
   const tbody = document.getElementById('rows');
-  tbody.innerHTML = items.map(i => `
+  tbody.innerHTML = items.map(i => {
+    const d = getItemDate(i);
+    const dateStr = d.toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
+    const itemType = getItemType(i);
+    const amount = getItemAmount(i);
+    const ref = getItemRef(i);
+
+    return `
     <tr>
-      <td>${masked ? '••••-••-••' : i.date}</td>
-      <td><span class="badge ${i.type}">${i.type}</span></td>
-      <td>${i.merchant}</td>
-      <td><code>${masked ? '••••••••' : i.ref}</code></td>
-      <td class="amt ${i.type === 'received' ? 'received' : 'spent'}" style="text-align: right;">
-        ${i.type === 'received' ? '+' : '-'}P${i.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+      <td>${masked ? '••••-••-••' : dateStr}</td>
+      <td><span class="badge ${itemType}">${itemType}</span></td>
+      <td>${i.merchant || '-'}</td>
+      <td><code>${masked ? '••••••••' : ref}</code></td>
+      <td class="amt ${itemType === 'received' ? 'received' : 'spent'}" style="text-align: right;">
+        ${itemType === 'received' ? '+' : '-'}P${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
       </td>
-      <td class="del"><button onclick="deleteRef('${i.ref}')">&times;</button></td>
+      <td class="del"><button onclick="deleteRef('${ref}')">&times;</button></td>
     </tr>
-  `).join('');
+  `}).join('');
 }
 
 function deleteRef(ref) {
