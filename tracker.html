@@ -4,415 +4,561 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GCash Spend Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root {
   color-scheme: light dark;
-  --bg: #fff; --panel: #f4f4f6; --border: #e4e4e8; --text: #1c1c1e; --muted: #8e8e93;
+  --bg: #0b0f19;
+  --panel: #151c2e;
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --text: #f3f4f6;
+  --muted: #9ca3af;
+  --primary: #0072FF;
+  --primary-hover: #005CE6;
+  --success: #10b981;
+  --danger: #ef4444;
+  --accent: #8b5cf6;
 }
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #1c1c1e; --panel: #2c2c2e; --border: #3a3a3c; --text: #f2f2f7; }
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f8fafc;
+    --panel: #ffffff;
+    --panel-border: rgba(0, 0, 0, 0.08);
+    --text: #0f172a;
+    --muted: #64748b;
+  }
 }
-* { box-sizing: border-box; }
-body { font-family: system-ui, -apple-system, sans-serif; max-width: 720px; margin: 0 auto; padding: 1.5rem 1rem; line-height: 1.5; background: var(--bg); color: var(--text); }
-h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
-.hint { color: var(--muted); margin: 0 0 1rem; font-size: .9rem; }
-textarea { width: 100%; min-height: 120px; padding: .6rem; border: 1px solid var(--border); border-radius: 8px; font: .9rem ui-monospace, monospace; resize: vertical; background: var(--bg); color: var(--text); }
-.row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin: .6rem 0; }
-button { padding: .45rem .9rem; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text); cursor: pointer; }
-button:hover { border-color: #aaa; }
-#add { background: #1da1f2; border-color: #1da1f2; color: #fff; }
-#privacy.on { background: #e67e22; border-color: #e67e22; color: #fff; }
-input[type=date], select { padding: .3rem .5rem; border: 1px solid var(--border); border-radius: 8px; font: inherit; background: var(--bg); color: var(--text); }
-.cards { display: flex; gap: .75rem; margin: 1rem 0; flex-wrap: wrap; }
-.card { flex: 1; min-width: 120px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: .6rem .8rem; }
-.card .lbl { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-.card .val { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-.panels { display: flex; gap: 1rem; margin: 0 0 1rem; flex-wrap: wrap; }
-.panel { flex: 1; min-width: 220px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: .7rem .8rem; }
-.pl { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: .5rem; }
-#trendChart, #weekdayChart { display: flex; align-items: flex-end; gap: 2px; height: 72px; }
-.chart .day { flex: 1; background: #1da1f2; opacity: .65; border-radius: 2px 2px 0 0; min-height: 2px; }
-.chart .day:hover { opacity: 1; }
-.axis { display: flex; gap: 2px; margin-top: 3px; }
-.axis span { flex: 1; text-align: center; font-size: .6rem; color: var(--muted); }
-.donutWrap { display: flex; align-items: center; gap: .8rem; }
-#donutBox { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
-#donut { width: 72px; height: 72px; border-radius: 50%; }
-#donutTotal { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .55rem; color: var(--muted); text-align: center; line-height: 1.1; }
-.lg { display: flex; align-items: center; gap: .35rem; font-size: .8rem; }
-.lg span { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
-.lg b { margin-left: auto; font-variant-numeric: tabular-nums; }
-.mr { margin-bottom: .45rem; }
-.mn { display: flex; justify-content: space-between; font-size: .85rem; gap: .5rem; }
-.ma { color: var(--muted); font-variant-numeric: tabular-nums; }
-.bar { height: 5px; background: var(--border); border-radius: 3px; margin-top: 2px; overflow: hidden; }
-.bar div { height: 100%; background: #1da1f2; border-radius: 3px; }
-table { width: 100%; border-collapse: collapse; font-size: .92rem; }
-th, td { text-align: left; padding: .45rem .4rem; border-bottom: 1px solid var(--border); }
-th { font-weight: 600; color: var(--muted); font-size: .75rem; text-transform: uppercase; }
-tbody tr:hover { background: var(--panel); }
-tbody tr:nth-child(even) { background: rgba(128,128,128,.06); }
-tbody tr:nth-child(even):hover { background: var(--panel); }
-td.amt { font-variant-numeric: tabular-nums; }
-td.del { text-align: right; }
-td.del button { padding: 0 .5rem; border: none; background: none; color: #c00; font-size: 1rem; cursor: pointer; }
-.sms { font-size: .7rem; color: #1a7f37; border: 1px solid #1a7f37; border-radius: 4px; padding: 0 .3rem; margin-right: .4rem; }
-.chip { font-size: .7rem; border: 1px solid; border-radius: 4px; padding: 0 .3rem; }
-.empty { color: var(--muted); text-align: center; padding: 1.5rem; }
-#parseMsg { font-size: .85rem; }
-.ok { color: #1a7f37; }
-.err { color: #c00; }
-#tip { position: fixed; background: var(--text); color: var(--bg); font-size: .78rem; padding: .35rem .6rem; border-radius: 6px; pointer-events: none; z-index: 20; box-shadow: 0 2px 8px rgba(0,0,0,.25); white-space: nowrap; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  line-height: 1.5;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #0072FF;
+}
+
+.sub-header {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+details.import-section {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+
+details.import-section summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--primary);
+}
+
+textarea {
+  width: 100%;
+  min-height: 100px;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  font: 0.875rem ui-monospace, monospace;
+  resize: vertical;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+button, select, input[type=date] {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:hover { border-color: var(--primary); }
+button.btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+button.btn-primary:hover { background: var(--primary-hover); }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 1.1rem;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+}
+
+.card .lbl {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.card .val {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.card.spent .val { color: var(--danger); }
+.card.received .val { color: var(--success); }
+.card.net .val { color: var(--primary); }
+
+.filter-bar {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  padding: 0.85rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.chart-panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 1.1rem;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+  position: relative;
+}
+
+.chart-panel h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.chart-container {
+  position: relative;
+  height: 220px;
+  width: 100%;
+}
+
+.table-panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 1.1rem;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.75rem 0.6rem;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+th {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+tbody tr:hover { background: rgba(0,0,0,0.02); }
+td.amt { font-variant-numeric: tabular-nums; font-weight: 600; }
+td.amt.spent { color: var(--danger); }
+td.amt.received { color: var(--success); }
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 0.2rem 0.4rem;
+  text-transform: capitalize;
+}
+
+.badge.payment { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+.badge.received { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+.badge.withdraw { background: rgba(139, 92, 246, 0.15); color: var(--accent); }
+
+td.del button {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+td.del button:hover { color: var(--danger); }
 </style>
 </head>
 <body>
-<h1>&#128184; GCash Spend Tracker</h1>
-<p class="hint" id="hint">Paste GCash SMS below: payments, cash outs, or money received. One or many at once. Duplicates (same Ref. No.) are skipped.</p>
-<textarea id="box" spellcheck="false" placeholder="Your payment of P123.45 to TikTok Shop Sel has been successfully processed on 08-18-26 10:30:00 PM. Ref. No. 123456789"></textarea>
-<div class="row">
-  <button id="add">Add payments</button>
-  <span id="parseMsg"></span>
-</div>
+
+<header>
+  <div>
+    <h1>💙 GCash Spend Tracker</h1>
+    <div class="sub-header">Local-first financial analytics & iMessage parser</div>
+  </div>
+  <button id="exportCsv">📥 Export CSV</button>
+</header>
+
+<details class="import-section">
+  <summary>➕ Manual SMS Paste / Import</summary>
+  <p class="sub-header" style="margin-top: 0.4rem;">Paste raw GCash SMS texts below to append to your ledger.</p>
+  <textarea id="box" spellcheck="false" placeholder="Your payment of P123.45 to TikTok Shop Sel has been successfully processed on 08-18-26 10:30:00 PM. Ref. No. 123456789"></textarea>
+  <div class="row">
+    <button id="add" class="btn-primary">Add Payments</button>
+    <span id="parseMsg"></span>
+  </div>
+</details>
+
 <div class="cards">
-  <div class="card"><div class="lbl">Spent</div><div class="val" id="total">P0.00</div></div>
-  <div class="card"><div class="lbl">Received</div><div class="val" id="received">P0.00</div></div>
+  <div class="card spent"><div class="lbl">Total Spent</div><div class="val" id="total">P0.00</div></div>
+  <div class="card received"><div class="lbl">Total Received</div><div class="val" id="received">P0.00</div></div>
+  <div class="card net"><div class="lbl">Net Cash Flow</div><div class="val" id="net">P0.00</div></div>
   <div class="card"><div class="lbl">Transactions</div><div class="val" id="count">0</div></div>
 </div>
-<div class="row">
-  <label>Period <select id="month"></select></label>
-  <label>Type <select id="type">
-    <option value="all">All</option>
-    <option value="payment">Payments</option>
-    <option value="withdraw">Cash out</option>
-    <option value="received">Received</option>
-    <option value="tiktok">TikTok Shop</option>
-  </select></label>
-  <label>Merchant <select id="merchant"><option value="all">All merchants</option></select></label>
-  <label>From <input type="date" id="from"></label>
-  <label>To <input type="date" id="to"></label>
-  <button id="privacy" title="Mask ref numbers and times">&#128374; Mask</button>
+
+<div class="filter-bar">
+  <div class="filter-group">
+    Period: <select id="month"></select>
+  </div>
+  <div class="filter-group">
+    Type:
+    <select id="type">
+      <option value="all">All Types</option>
+      <option value="payment">Payments</option>
+      <option value="withdraw">Cash Out</option>
+      <option value="received">Received</option>
+      <option value="tiktok">TikTok Shop</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    Merchant: <select id="merchant"><option value="all">All Merchants</option></select>
+  </div>
+  <div class="filter-group">
+    From: <input type="date" id="from">
+  </div>
+  <div class="filter-group">
+    To: <input type="date" id="to">
+  </div>
+  <button id="privacy">🎭 Mask Data</button>
   <button id="reset">Reset</button>
 </div>
-<div class="panels" id="panels">
-  <div class="panel" id="trendPanel" hidden><div class="pl">Spend trend</div><div id="trendChart" class="chart"></div></div>
-  <div class="panel" id="weekdayPanel" hidden><div class="pl">Spend by weekday</div><div id="weekdayChart" class="chart"></div><div class="axis"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div></div>
-  <div class="panel" id="flowPanel" hidden><div class="pl">Money flow</div><div class="donutWrap"><div id="donutBox"><div id="donut"></div><div id="donutTotal"></div></div><div id="donutLegend"></div></div></div>
-  <div class="panel" id="merchantPanel" hidden><div class="pl">Top merchants</div><div id="merchants"></div></div>
+
+<div class="charts-grid">
+  <div class="chart-panel">
+    <h3>Spending Trend</h3>
+    <div class="chart-container"><canvas id="trendChart"></canvas></div>
+  </div>
+  <div class="chart-panel">
+    <h3>Merchant Breakdown</h3>
+    <div class="chart-container"><canvas id="merchantChart"></canvas></div>
+  </div>
 </div>
-<div style="overflow-x:auto">
-<table>
-  <thead><tr><th>Date</th><th>Time</th><th>Merchant</th><th>Type</th><th>Amount</th><th>Ref. No.</th><th></th></tr></thead>
-  <tbody id="rows"></tbody>
-</table>
+
+<div class="table-panel">
+  <h3>Recent Transactions</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Date & Time</th>
+        <th>Type</th>
+        <th>Recipient / Merchant</th>
+        <th>Ref No.</th>
+        <th style="text-align: right;">Amount</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
 </div>
-<div class="row">
-  <button id="export">Export JSON</button>
-  <button id="import">Import JSON</button>
-  <input type="file" id="file" hidden accept=".json">
-  <button id="clear">Clear local</button>
-</div>
-<div id="tip" hidden></div>
+
 <script>
-"use strict";
-const RE_OLD = /payment of P([\d,]+\.\d{2}) to (.+?) has been successfully processed on (\d{2})-(\d{2})-(\d{2}) (\d{1,2}:\d{2}:\d{2} [AP]M)\. Ref\. No\. (\d+)/gi;
-const RE_NEW = /You have paid P([\d,]+\.\d{2}) GCash to (.+?)\s+on (\d{2})-(\d{2})-(\d{2}) (\d{1,2}:\d{2}:\d{2} [AP]M)[.,]?.*?Ref\. No\.? (\d+)/gi;
-const RE_WITHDRAW = /You have successfully withdrawn P([\d,]+\.\d{2}) from (.+?) wallet.*?on (\d{2})-(\d{2})-(\d{2}) (\d{1,2}:\d{2}:\d{2}) [AP]M.*?Ref\. No\.? (\d+)/gi;
-const RE_RECEIVED = /You have received P([\d,]+\.\d{2}) from (.+?) on (\d{2})-(\d{2})-(\d{4}) (\d{1,2}:\d{2}(?::\d{2})?) [AP]M.*?GCash Ref\. No\.? (\d+)/gi;
-const KEY = "tt-spend", DISMISS_KEY = "tt-dismissed";
-const KIND = { payment: ["Pay", "#1da1f2"], withdraw: ["Cash out", "#e67e22"], received: ["Received", "#1a7f37"] };
-let manual = JSON.parse(localStorage.getItem(KEY) || "[]");
-let dismissed = JSON.parse(localStorage.getItem(DISMISS_KEY) || "[]");
-let remote = [];
+let ledger = [];
+let masked = false;
+let trendChartInst = null;
+let merchantChartInst = null;
 
-const toTx = (m, kind) => {
-  const [hm, ap] = m[6].split(" ");
-  const [h, mi, s] = hm.split(":").map(Number);
-  let hh = h;
-  if (ap === "PM" && h !== 12) hh = h + 12;
-  if (ap === "AM" && h === 12) hh = 0;
-  const year = m[5].length === 4 ? +m[5] : 2000 + +m[5];
-  return { ref: +m[7], amt: parseFloat(m[1].replace(/,/g, "")), merchant: m[2].trim(), kind, ts: new Date(year, +m[3] - 1, +m[4], hh, mi || 0, s || 0).getTime() };
-};
+const RE_OLD = /Your payment of P([\d,]+\.\d{2}) to (.+?) has been successfully processed on (\d{2}-\d{2}-\d{2} \d{1,2}:\d{2}:\d{2} [AP]M)\. Ref\. No\. (\d+)/i;
+const RE_NEW = /You have paid P([\d,]+\.\d{2}) GCash to (.+?)\s+on (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\. Ref\. No\. (\d+)/i;
+const RE_EXPRESS = /You have sent P([\d,]+\.\d{2}) of GCash to (.+?)\s+on (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\. Ref\. No\. (\d+)/i;
+const RE_WITHDRAW = /You have successfully cashed out P([\d,]+\.\d{2}) via (.+?) on (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\. Ref\. No\. (\d+)/i;
+const RE_RCVD = /You have received P([\d,]+\.\d{2}) of GCash from (.+?)\s+on (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\. Ref\. No\. (\d+)/i;
 
-function parse(text) {
-  const out = [];
-  for (const [re, kind, merchant] of [[RE_OLD, "payment"], [RE_NEW, "payment"], [RE_WITHDRAW, "withdraw", "Cash Out"], [RE_RECEIVED, "received"]]) {
-    for (const m of text.matchAll(re)) {
-      const t = toTx(m, kind);
-      if (merchant) t.merchant = merchant;
-      out.push(t);
-    }
+function parseDate(s) {
+  if (!s) return new Date(0);
+  if (s.includes(' PM') || s.includes(' AM')) {
+    const [d, t, p] = s.split(' ');
+    const [m, dy, y] = d.split('-').map(Number);
+    let [h, min, sec] = t.split(':').map(Number);
+    if (p === 'PM' && h < 12) h += 12;
+    if (p === 'AM' && h === 12) h = 0;
+    return new Date(2000 + y, m - 1, dy, h, min, sec);
   }
-  return out;
+  return new Date(s.replace(' ', 'T'));
 }
 
-function dedupe(list) {
-  return [...new Map(list.map((t) => [t.ref, t])).values()];
-}
-
-const fmtP = (n) => "P" + n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const monthKey = (ts) => { const d = new Date(ts); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); };
-const fmtD = (ts) => { const d = new Date(ts); return [String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0"), String(d.getFullYear()).slice(2)].join("-"); };
-
-const $ = (s) => document.querySelector(s);
-const box = $("#box"), addBtn = $("#add"), parseMsg = $("#parseMsg"), hint = $("#hint");
-const total = $("#total"), received = $("#received"), count = $("#count"), monthSel = $("#month"), typeSel = $("#type"), merchantSel = $("#merchant"), fromSel = $("#from"), toSel = $("#to"), rows = $("#rows");
-const privacyBtn = $("#privacy");
-let privacy = localStorage.getItem("tt-privacy") === "1";
-const trendPanel = $("#trendPanel"), trendChart = $("#trendChart"), weekdayPanel = $("#weekdayPanel"), weekdayChart = $("#weekdayChart"), flowPanel = $("#flowPanel"), donut = $("#donut"), donutLegend = $("#donutLegend"), merchPanel = $("#merchantPanel"), merchantsDiv = $("#merchants");
-const panelsEl = $("#panels"), tip = $("#tip"), donutTotal = $("#donutTotal");
-
-const allTxs = () => dedupe([...remote, ...manual]).filter((t) => !dismissed.includes(t.ref));
-const weekStart = (ts) => { const d = new Date(ts); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); };
-const parseDate = (v) => { const [y, m, d] = v.split("-").map(Number); return new Date(y, m - 1, d); };
-const inRange = (ts, fromStr, toStr) => {
-  if (fromStr && ts < parseDate(fromStr).getTime()) return false;
-  if (toStr && ts > parseDate(toStr).getTime() + 864e5 - 1) return false;
-  return true;
-};
-const esc = (s) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-const spendBy = (list, unit, maxDays = 63) => {
-  const out = list.filter((t) => (t.kind || "payment") !== "received");
-  if (!out.length) return [];
-  const m = new Map();
-  for (const t of out) {
-    const d = new Date(t.ts);
-    const k = unit === "month"
-      ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
-      : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    m.set(k, (m.get(k) || 0) + t.amt);
-  }
-  const keys = [...m.keys()].sort();
-  if (unit === "day" && parseDate(keys[keys.length - 1]).getTime() - parseDate(keys[0]).getTime() > (maxDays - 1) * 864e5) return [];
-  return keys.map((k) => ({ k, amt: m.get(k) }));
-};
-const weekdaySpend = (list) => {
-  const w = [0, 0, 0, 0, 0, 0, 0];
-  for (const t of list) if ((t.kind || "payment") !== "received") w[new Date(t.ts).getDay()] += t.amt;
-  return w;
-};
-const flowBreakdown = (list) => {
-  const f = { payment: 0, withdraw: 0, received: 0 };
-  for (const t of list) f[t.kind || "payment"] += t.amt;
-  f.total = f.payment + f.withdraw + f.received;
-  return f;
-};
-const topMerchants = (list, n) => {
-  const m = new Map();
-  for (const t of list) if ((t.kind || "payment") !== "received") m.set(t.merchant, (m.get(t.merchant) || 0) + t.amt);
-  return [...m].sort((a, b) => b[1] - a[1]).slice(0, n);
-};
-
-function render() {
-  const m = monthSel.value, ty = typeSel.value, ws = weekStart(Date.now());
-  const inPeriod = (t) => {
-    if (merchantSel.value !== "all" && t.merchant !== merchantSel.value) return false;
-    if (fromSel.value || toSel.value) return inRange(t.ts, fromSel.value, toSel.value);
-    if (m === "week") return t.ts >= ws;
-    if (m === "lastweek") return t.ts >= ws - 7 * 864e5 && t.ts < ws;
-    return m === "all" || monthKey(t.ts) === m;
-  };
-  const list = allTxs().filter((t) => {
-    const k = t.kind || "payment";
-    if (ty === "tiktok" ? !/tiktok/i.test(t.merchant) : ty !== "all" && k !== ty) return false;
-    return inPeriod(t);
-  }).sort((a, b) => b.ts - a.ts);
-  total.textContent = fmtP(list.reduce((s, t) => s + ((t.kind || "payment") !== "received" ? t.amt : 0), 0));
-  received.textContent = fmtP(list.reduce((s, t) => s + ((t.kind || "payment") === "received" ? t.amt : 0), 0));
-  count.textContent = list.length;
-  let trendData = spendBy(list, "day");
-  let unit = "day";
-  if (!trendData.length) { trendData = spendBy(list, "month"); unit = "month"; }
-  trendPanel.hidden = !trendData.length;
-  if (trendData.length) {
-    const max = Math.max(...trendData.map((d) => d.amt));
-    trendChart.innerHTML = trendData.map((d) => {
-      const tt = unit === "day"
-        ? `${parseDate(d.k).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · ${fmtP(d.amt)}`
-        : `${new Date(+d.k.slice(0, 4), +d.k.slice(5, 7) - 1, 1).toLocaleDateString("en-US", { month: "short", year: "numeric" })} · ${fmtP(d.amt)}`;
-      return `<div class="day" data-tip="${esc(tt)}" style="height:${Math.max(2, d.amt / max * 100)}%"></div>`;
-    }).join("");
-  }
-  const wd = weekdaySpend(list);
-  const wdMax = Math.max(...wd);
-  weekdayPanel.hidden = wdMax === 0;
-  if (wdMax) {
-    const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    weekdayChart.innerHTML = [1, 2, 3, 4, 5, 6, 0].map((i) => `<div class="day" data-tip="${names[i]} · ${fmtP(wd[i])}" style="height:${Math.max(2, wd[i] / wdMax * 100)}%"></div>`).join("");
-  }
-  const flow = flowBreakdown(allTxs().filter(inPeriod));
-  const totalFlow = flow.total;
-  flowPanel.hidden = totalFlow === 0;
-  if (totalFlow) {
-    const cols = [["payment", "#1da1f2"], ["withdraw", "#e67e22"], ["received", "#1a7f37"]];
-    let css = "", prev = 0;
-    for (const [k, color] of cols) {
-      if (!flow[k]) continue;
-      const end = Math.round((prev + flow[k] / totalFlow * 100) * 100) / 100;
-      css += `${color} ${prev}% ${end}% `;
-      prev = end;
-    }
-    donut.style.background = `conic-gradient(${css.trim()})`;
-    donutTotal.textContent = fmtP(totalFlow);
-    donutLegend.innerHTML = cols.map(([k, color]) => {
-      const name = k === "payment" ? "Payments" : k === "withdraw" ? "Cash out" : "Received";
-      const pct = Math.round(flow[k] / totalFlow * 100);
-      return `<div class="lg"><span style="background:${color}"></span>${name} <b>${pct}% · ${fmtP(flow[k])}</b></div>`;
-    }).join("");
-  }
-  const top = topMerchants(list, 5);
-  merchPanel.hidden = !top.length;
-  if (top.length) {
-    const max = top[0][1];
-    merchantsDiv.innerHTML = top.map(([name, amt]) => `<div class="mr"><div class="mn"><span>${esc(name)}</span><span class="ma">${fmtP(amt)}</span></div><div class="bar" data-tip="${esc(`${name} · ${fmtP(amt)}`)}"><div style="width:${amt / max * 100}%"></div></div></div>`).join("");
-  }
-  const merchants = [...new Set(allTxs().map((t) => t.merchant))].sort((a, b) => a.localeCompare(b));
-  const prevMerchant = merchantSel.value;
-  merchantSel.innerHTML = '<option value="all">All merchants</option>' + merchants.map((n) => `<option value="${esc(n)}" ${n === prevMerchant ? "selected" : ""}>${esc(n)}</option>`).join("");
-  privacyBtn.classList.toggle("on", privacy);
-  rows.innerHTML = list.map((t) => {
-    const [label, color] = KIND[t.kind || "payment"];
-    return `<tr>
-      <td>${t.source === "sms" ? '<span class="sms">SMS</span>' : ""}${fmtD(t.ts)}</td>
-      <td>${privacy ? "***" : new Date(t.ts).toLocaleTimeString("en-US", { hour12: true })}</td>
-      <td>${esc(t.merchant)}</td><td><span class="chip" style="color:${color};border-color:${color}">${label}</span></td>
-      <td class="amt">${fmtP(t.amt)}</td><td>${privacy ? "***" : t.ref}</td>
-      <td class="del"><button data-ref="${t.ref}" title="Delete">&#10005;</button></td></tr>`;
-  }).join("") || '<tr><td colspan="7" class="empty">No transactions in this view.</td></tr>';
-  const monthsSet = new Set(allTxs().map((t) => monthKey(t.ts)));
-  const now = new Date();
-  for (let i = 0; i <= now.getMonth(); i++) monthsSet.add(`${now.getFullYear()}-${String(i + 1).padStart(2, "0")}`);
-  const months = [...monthsSet].sort().reverse();
-  monthSel.innerHTML = '<option value="week">This week</option><option value="lastweek">Last week</option><option value="all">All time</option>' + months.map((k) => {
-    const [y, mm] = k.split("-");
-    return `<option value="${k}" ${k === m ? "selected" : ""}>${new Date(+y, +mm - 1, 1).toLocaleString("en-US", { month: "long", year: "numeric" })}</option>`;
-  }).join("");
-}
-
-function save() {
-  localStorage.setItem(KEY, JSON.stringify(manual));
-  localStorage.setItem(DISMISS_KEY, JSON.stringify(dismissed));
-  render();
+function parseSms(text) {
+  let m = text.match(RE_NEW) || text.match(RE_OLD);
+  if (m) return { type: 'payment', amount: parseFloat(m[1].replace(/,/g, '')), merchant: m[2].trim(), date: m[3], ref: m[4], raw: text };
+  m = text.match(RE_EXPRESS);
+  if (m) return { type: 'payment', amount: parseFloat(m[1].replace(/,/g, '')), merchant: 'Express Send: ' + m[2].trim(), date: m[3], ref: m[4], raw: text };
+  m = text.match(RE_WITHDRAW);
+  if (m) return { type: 'withdraw', amount: parseFloat(m[1].replace(/,/g, '')), merchant: m[2].trim(), date: m[3], ref: m[4], raw: text };
+  m = text.match(RE_RCVD);
+  if (m) return { type: 'received', amount: parseFloat(m[1].replace(/,/g, '')), merchant: m[2].trim(), date: m[3], ref: m[4], raw: text };
+  return null;
 }
 
 async function loadLedger() {
   try {
-    const r = await (await fetch("ledger.json", { cache: "no-store" })).json();
-    if (Array.isArray(r)) {
-      remote = r;
-      hint.textContent = "Auto-captured from Messages every 5 min. Paste below to add manually.";
-      save();
+    const res = await fetch('ledger.json?cache=' + Date.now());
+    if (res.ok) {
+      ledger = await res.json();
+      populateDropdowns();
+      render();
     }
-  } catch {
-    /* file:// fallback: manual paste only */
+  } catch (e) {
+    console.error('Ledger fetch error:', e);
   }
 }
-setInterval(loadLedger, 30000);
-loadLedger();
 
-addBtn.onclick = () => {
-  const found = parse(box.value);
-  if (!found.length) { parseMsg.textContent = "No GCash payment messages found."; parseMsg.className = "err"; return; }
-  const before = manual.length;
-  manual = dedupe([...manual, ...found]);
-  parseMsg.textContent = `Added ${found.length} payment(s), ${manual.length - before} new.`;
-  parseMsg.className = "ok";
-  box.value = "";
-  save();
-};
+function populateDropdowns() {
+  const months = new Set();
+  const merchants = new Set();
+  ledger.forEach(i => {
+    const d = parseDate(i.date);
+    if (d.getFullYear() > 2000) months.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    if (i.merchant) merchants.add(i.merchant);
+  });
 
-rows.addEventListener("click", (e) => {
-  const ref = e.target.dataset.ref && +e.target.dataset.ref;
-  if (!ref || !confirm("Hide this entry?")) return;
-  if (remote.some((t) => t.ref === ref)) {
-    if (!dismissed.includes(ref)) dismissed.push(ref);
-  } else {
-    manual = manual.filter((t) => t.ref !== ref);
-  }
-  save();
+  const mSel = document.getElementById('month');
+  mSel.innerHTML = '<option value="all">All Time</option>' + Array.from(months).sort().reverse().map(m => `<option value="${m}">${m}</option>`).join('');
+
+  const merSel = document.getElementById('merchant');
+  merSel.innerHTML = '<option value="all">All Merchants</option>' + Array.from(merchants).sort().map(m => `<option value="${m}">${m}</option>`).join('');
+}
+
+function getFiltered() {
+  const month = document.getElementById('month').value;
+  const type = document.getElementById('type').value;
+  const merchant = document.getElementById('merchant').value;
+  const from = document.getElementById('from').value;
+  const to = document.getElementById('to').value;
+
+  return ledger.filter(item => {
+    const d = parseDate(item.date);
+    const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (month !== 'all' && mStr !== month) return false;
+    if (type === 'tiktok' && !/tiktok/i.test(item.merchant)) return false;
+    if (type !== 'all' && type !== 'tiktok' && item.type !== type) return false;
+    if (merchant !== 'all' && item.merchant !== merchant) return false;
+    if (from && d < new Date(from)) return false;
+    if (to && d > new Date(to + 'T23:59:59')) return false;
+    return true;
+  });
+}
+
+function renderCharts(items) {
+  // Aggregate daily spent
+  const dailyMap = {};
+  const merchantMap = {};
+
+  items.forEach(i => {
+    const d = parseDate(i.date);
+    const dayStr = d.toISOString().split('T')[0];
+    if (i.type === 'payment' || i.type === 'withdraw') {
+      dailyMap[dayStr] = (dailyMap[dayStr] || 0) + i.amount;
+      merchantMap[i.merchant] = (merchantMap[i.merchant] || 0) + i.amount;
+    }
+  });
+
+  const sortedDays = Object.keys(dailyMap).sort();
+  const trendData = sortedDays.map(k => dailyMap[k]);
+
+  // Trend Chart
+  if (trendChartInst) trendChartInst.destroy();
+  const ctx1 = document.getElementById('trendChart').getContext('2d');
+  trendChartInst = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels: sortedDays,
+      datasets: [{
+        label: 'Daily Spend (P)',
+        data: trendData,
+        borderColor: '#0072FF',
+        backgroundColor: 'rgba(0, 114, 255, 0.1)',
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { beginAtZero: true }
+      }
+    }
+  });
+
+  // Merchant Chart
+  const sortedMerchants = Object.entries(merchantMap).sort((a,b) => b[1] - a[1]).slice(0, 5);
+  if (merchantChartInst) merchantChartInst.destroy();
+  const ctx2 = document.getElementById('merchantChart').getContext('2d');
+  merchantChartInst = new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: sortedMerchants.map(m => m[0]),
+      datasets: [{
+        data: sortedMerchants.map(m => m[1]),
+        backgroundColor: ['#0072FF', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'right' } }
+    }
+  });
+}
+
+function render() {
+  const items = getFiltered();
+  let spent = 0, received = 0;
+
+  items.forEach(i => {
+    if (i.type === 'received') received += i.amount;
+    else spent += i.amount;
+  });
+
+  document.getElementById('total').textContent = 'P' + spent.toLocaleString('en-US', { minimumFractionDigits: 2 });
+  document.getElementById('received').textContent = 'P' + received.toLocaleString('en-US', { minimumFractionDigits: 2 });
+  const net = received - spent;
+  document.getElementById('net').textContent = 'P' + net.toLocaleString('en-US', { minimumFractionDigits: 2 });
+  document.getElementById('count').textContent = items.length;
+
+  renderCharts(items);
+
+  const tbody = document.getElementById('rows');
+  tbody.innerHTML = items.map(i => `
+    <tr>
+      <td>${masked ? '••••-••-••' : i.date}</td>
+      <td><span class="badge ${i.type}">${i.type}</span></td>
+      <td>${i.merchant}</td>
+      <td><code>${masked ? '••••••••' : i.ref}</code></td>
+      <td class="amt ${i.type === 'received' ? 'received' : 'spent'}" style="text-align: right;">
+        ${i.type === 'received' ? '+' : '-'}P${i.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+      </td>
+      <td class="del"><button onclick="deleteRef('${i.ref}')">&times;</button></td>
+    </tr>
+  `).join('');
+}
+
+function deleteRef(ref) {
+  ledger = ledger.filter(i => i.ref !== ref);
+  render();
+}
+
+document.getElementById('privacy').addEventListener('click', () => {
+  masked = !masked;
+  render();
 });
-panelsEl.addEventListener("mousemove", (e) => {
-  const bar = e.target.closest && e.target.closest("[data-tip]");
-  if (!bar) { tip.hidden = true; return; }
-  tip.innerHTML = bar.dataset.tip;
-  tip.hidden = false;
-  const r = tip.getBoundingClientRect();
-  tip.style.left = Math.min(e.clientX + 12, innerWidth - r.width - 8) + "px";
-  tip.style.top = Math.min(e.clientY + 14, innerHeight - r.height - 8) + "px";
-});
-panelsEl.addEventListener("mouseleave", () => { tip.hidden = true; });
-$("#clear").onclick = () => {
-  if (confirm("Clear all locally added payments? Auto-captured SMS entries return on next refresh.")) {
-    manual = []; dismissed = [];
-    save();
-  }
-};
-privacyBtn.onclick = () => { privacy = !privacy; localStorage.setItem("tt-privacy", privacy ? "1" : "0"); save(); };
-$("#reset").onclick = () => { monthSel.value = "week"; typeSel.value = "all"; merchantSel.value = "all"; fromSel.value = ""; toSel.value = ""; save(); };
-monthSel.onchange = typeSel.onchange = merchantSel.onchange = fromSel.onchange = toSel.onchange = render;
-$("#export").onclick = () => {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(allTxs(), null, 2)], { type: "application/json" }));
-  a.download = "gcash-spend.json";
+
+document.getElementById('exportCsv').addEventListener('click', () => {
+  const items = getFiltered();
+  let csv = 'Date,Type,Merchant,Ref,Amount\n';
+  items.forEach(i => {
+    csv += `"${i.date}","${i.type}","${i.merchant}","${i.ref}",${i.amount}\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'gcash-spend-export.csv';
   a.click();
-};
-$("#import").onclick = () => $("#file").click();
-$("#file").onchange = async (e) => {
-  try {
-    manual = dedupe([...manual, ...JSON.parse(await e.target.files[0].text())]);
-    save();
-  } catch { alert("Import failed: not a valid JSON backup."); }
-  e.target.value = "";
-};
+});
 
-function runTests() {
-  const assert = (c, msg) => { if (!c) throw new Error("FAIL: " + msg); };
-  const sample = "Your payment of P1,234.56 to TikTok Shop Sel has been successfully processed on 08-18-26 10:30:00 PM. Ref. No. 123456789";
-  const [t] = parse(sample);
-  assert(t.amt === 1234.56, "amount");
-  assert(t.ref === 123456789, "ref no");
-  assert(t.merchant === "TikTok Shop Sel", "merchant");
-  assert(t.kind === "payment", "kind");
-  const [t3] = parse("You have paid P185.00 GCash to TikTok Shop    on 08-16-26 09:13:22 AM. Your new balance is P123.00. Ref. No. 987654321.");
-  assert(t3 && t3.amt === 185 && t3.ref === 987654321 && t3.merchant === "TikTok Shop", "new format");
-  const [d] = parse("You have paid P130.28 GCash to DeepSeek on 08-15-26 09:55:00 AM. Your new balance is P0.71. Ref. No. 5000074697934.");
-  assert(d && d.kind === "payment" && d.merchant === "DeepSeek", "service payment");
-  const [sp] = parse("Your payment of P199.00 to Spotify has been successfully processed on 08-01-26 09:00:00 AM. Ref. No. 555111");
-  assert(sp && sp.merchant === "Spotify", "spotify");
-  const [w] = parse("You have successfully withdrawn P6,510.00 from your GCash wallet with applicable fees on 08-17-26 07:16:45 AM Your new balance is P7.43. Ref. No 5044048733276");
-  assert(w && w.kind === "withdraw" && w.amt === 6510 && w.ref === 5044048733276, "withdrawal");
-  const [r] = parse("You have received P3,020.30 from Kathryn Arlan on 08-13-2026 01:58 PM. This GCash remittance from AUS has Reference Number R15724765155. Your new balance is P3020.30. GCash Ref. No. 5034567890123.");
-  assert(r && r.kind === "received" && r.amt === 3020.3 && r.merchant === "Kathryn Arlan" && new Date(r.ts).getFullYear() === 2026, "received");
-  assert(parse(sample + "\n" + sample.replace("123456789", "987654321")).length === 2, "batch");
-  assert(dedupe([t, { ...t }]).length === 1, "dedupe");
-  assert(weekStart(new Date(2026, 7, 17, 10).getTime()) === new Date(2026, 7, 17).getTime(), "week starts Monday");
-  assert(parseDate("2026-08-19").getTime() === new Date(2026, 7, 19).getTime(), "parseDate local midnight");
-  const early = new Date(2026, 7, 19, 0, 30).getTime();
-  assert(inRange(early, "2026-08-19", ""), "range from inclusive local");
-  assert(inRange(early, "", "2026-08-19"), "range to inclusive");
-  assert(!inRange(early, "2026-08-20", ""), "range excludes before from");
-  assert(!inRange(early, "", "2026-08-18"), "range excludes after to");
-  const txs = [
-    { merchant: "A", amt: 10, ts: new Date(2026, 7, 17, 9).getTime(), kind: "payment" },
-    { merchant: "B", amt: 20, ts: new Date(2026, 7, 17, 10).getTime(), kind: "payment" },
-    { merchant: "B", amt: 5, ts: new Date(2026, 7, 19, 10).getTime(), kind: "payment" },
-    { merchant: "C", amt: 99, ts: new Date(2026, 7, 18, 10).getTime(), kind: "received" },
-  ];
-  const sd = spendBy(txs, "day");
-  assert(sd.length === 2 && sd[0].amt === 30 && sd[1].k === "2026-08-19" && sd[1].amt === 5, "spendBy day groups local days, excludes received");
-  assert(spendBy(txs, "day", 2).length === 0, "spendBy day span cap");
-  const sm = spendBy(txs, "month");
-  assert(sm.length === 1 && sm[0].k === "2026-08" && sm[0].amt === 35, "spendBy month");
-  const wd = weekdaySpend(txs);
-  assert(wd[1] === 30 && wd[3] === 5, "weekdaySpend");
-  const tm = topMerchants(txs, 2);
-  assert(tm.length === 2 && tm[0][0] === "B" && tm[0][1] === 25, "topMerchants");
-  const fb = flowBreakdown(txs);
-  assert(fb.payment === 35 && fb.received === 99 && fb.total === 134, "flowBreakdown");
-}
-if (new URLSearchParams(location.search).has("selftest")) {
-  try { runTests(); console.log("selftest OK"); } catch (e) { alert(e.message); }
-}
+['month', 'type', 'merchant', 'from', 'to'].forEach(id => {
+  document.getElementById(id).addEventListener('change', render);
+});
+
+document.getElementById('reset').addEventListener('click', () => {
+  ['month', 'type', 'merchant', 'from', 'to'].forEach(id => document.getElementById(id).value = 'all');
+  document.getElementById('from').value = '';
+  document.getElementById('to').value = '';
+  render();
+});
+
+loadLedger();
+setInterval(loadLedger, 5000); // Auto-refresh ledger every 5s
 </script>
 </body>
 </html>
